@@ -1,0 +1,8 @@
+agent_bin
+Doc/*.zip
+agent/data/*.db*
+agent/data/*.json
+agent/superapp-agent.exe
+ui/.next/
+ui/node_modules/
+ui/out/
