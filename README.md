@@ -2,7 +2,7 @@
   <img src="assets/logo.png" alt="Neko-Agent Logo" width="200" height="200" style="border-radius: 24px;" />
 </p>
 
-<h1 align="center">🐱 Neko-Claw AI Controller</h1>
+<h1 align="center">🐱 Neko-Agent</h1>
 
 <p align="center">
   <strong>A "pawsome" computer control superapp that allows you to interact with your Windows machine using AI.</strong>
