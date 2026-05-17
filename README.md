@@ -2,21 +2,20 @@
   <img src="assets/logo.png" alt="Neko-Claw Logo" width="200" height="200" style="border-radius: 24px;" />
 </p>
 
-<h1 align="center">🐱 Neko-Claw AI Controller</h1>
+<h1 align="center">🐱 Neko-Agent</h1>
 
 <p align="center">
   <strong>A "pawsome" computer control superapp that allows you to interact with your Windows machine using AI.</strong>
 </p>
 
 <p align="center">
-  Featuring a sleek cat-themed UI and powered by Zhipu AI (GLM-4.7-flash), Neko-Claw provides a safe yet efficient way to automate tasks through PowerShell commands.
+  Featuring a sleek cat-themed UI, Neko-Claw provides a safe yet efficient way to automate tasks through PowerShell commands.
 </p>
 
 ## 🐾 Features
 
 - **Cat-Themed Interface**: A warm, user-friendly UI designed with a premium "Neko" aesthetic.
 - **Human-in-the-Loop Safety**: AI proposes PowerShell commands, but nothing runs without your explicit "Purr-fect" (Approve) or "Hiss" (Reject).
-- **Zhipu AI Integration**: Optimized for `glm-4.7-flash` model out of the box.
 - **One-Command Start**: Intelligent backend that automatically builds the Next.js frontend if needed.
 - **Smart Output Cleaning**: Automatically strips ANSI escape codes from terminal outputs for clean readability.
 - **Flexible Configuration**: Easily change API Keys, Models, and URLs directly from the Settings menu.
@@ -25,7 +24,7 @@
 
 - **Backend**: Go (Golang)
 - **Frontend**: Next.js (TypeScript, Tailwind CSS)
-- **AI Integration**: OpenAI-compatible API (Zhipu AI Recommended)
+- **AI Integration**: OpenAI-compatible API
 
 ## 🚀 Getting Started
 
@@ -57,8 +56,8 @@
 
 Once the app is running:
 1. Click on **⚙️ Settings** in the top navigation bar.
-2. Enter your **Zhipu AI API Key** (get it from [BigModel.cn](https://open.bigmodel.cn/)).
-3. Ensure the Endpoint is set to: `https://open.bigmodel.cn/api/paas/v4/`
+2. Enter your **API Key**.
+3. Ensure the Endpoint is set.
 4. Save the configuration and start chatting with Neko!
 
 ## ⚠️ Safety Warning
