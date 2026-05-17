@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
+
+	"github.com/sashabaranov/go-openai"
 )
 
 type Memory struct {
@@ -165,4 +170,121 @@ func (ms *MemoryStore) GetMemoryStats() map[string]interface{} {
 
 func (ms *MemoryStore) UpdateLastUsed(id string) {
 	db.Exec("UPDATE memories SET last_used = ? WHERE id = ?", time.Now(), id)
+}
+
+// ExtractMemoriesFromTurn processes a single user message and assistant reply to extract facts, preferences, and commands.
+func (ms *MemoryStore) ExtractMemoriesFromTurn(userMsg, assistantMsg string) {
+	// 1. Check settings first
+	s := getSettings()
+	if s.ApiKey == "" {
+		return // API key is missing
+	}
+
+	// 2. Get AI client and provider
+	client, provider, err := getAIClient()
+	if err != nil {
+		log.Printf("[Memory Extractor] Failed to get AI client: %v", err)
+		return
+	}
+
+	// 3. Construct prompt
+	prompt := fmt.Sprintf(`You are a memory extraction sub-system.
+Your task is to analyze the recent conversation turn and extract any IMPORTANT new facts, preferences, or useful PowerShell commands about the user or their system.
+
+Rules:
+1. ONLY extract information that is persistent and useful for future turns (e.g. user preferences, system facts, tools they use, paths they work in).
+2. Do NOT extract temporary conversational content or standard chit-chat.
+3. Category must be one of: "facts", "preferences", "events", "commands".
+4. Priority must be an integer from 1 to 5 (higher means more critical).
+5. Tags should be a list of lowercase short tags.
+6. Return a JSON array of objects with keys: "content", "category", "priority", "tags".
+7. Return ONLY the raw JSON array. Do not include markdown formatting or backticks (e.g. do not wrap in json block or similar).
+
+Conversation:
+User: %s
+Assistant: %s
+
+JSON Output:`, userMsg, assistantMsg)
+
+	// 4. Set up context and messages
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	messages := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleUser,
+			Content: prompt,
+		},
+	}
+
+	req := ChatRequest{
+		Message: "Extract memories",
+	}
+
+	// 5. Call LLM
+	resp, err := provider.CreateChatCompletion(ctx, client, req, messages)
+	if err != nil {
+		log.Printf("[Memory Extractor] Chat completion error: %v", err)
+		return
+	}
+
+	content := resp.Choices[0].Message.Content
+	log.Printf("[Memory Extractor] Raw LLM reply: %s", content)
+
+	// Clean JSON backticks if LLM included them
+	cleaned := strings.TrimSpace(content)
+	if strings.HasPrefix(cleaned, "```json") {
+		cleaned = strings.TrimPrefix(cleaned, "```json")
+		cleaned = strings.TrimSuffix(cleaned, "```")
+	} else if strings.HasPrefix(cleaned, "```") {
+		cleaned = strings.TrimPrefix(cleaned, "```")
+		cleaned = strings.TrimSuffix(cleaned, "```")
+	}
+	cleaned = strings.TrimSpace(cleaned)
+
+	// Fallback check: if it is empty, skip
+	if cleaned == "" || cleaned == "[]" {
+		return
+	}
+
+	// 6. Parse JSON output
+	type ExtractedMemory struct {
+		Content  string   `json:"content"`
+		Category string   `json:"category"`
+		Priority int      `json:"priority"`
+		Tags     []string `json:"tags"`
+	}
+
+	var extracted []ExtractedMemory
+	if err := json.Unmarshal([]byte(cleaned), &extracted); err != nil {
+		log.Printf("[Memory Extractor] Failed to parse JSON: %v. Cleaned content was: %s", err, cleaned)
+		return
+	}
+
+	// 7. Save extracted memories
+	for _, em := range extracted {
+		if em.Content == "" {
+			continue
+		}
+		// Validate category
+		cat := strings.ToLower(em.Category)
+		if cat != "facts" && cat != "preferences" && cat != "events" && cat != "commands" {
+			cat = "facts"
+		}
+		// Validate priority
+		priority := em.Priority
+		if priority < 1 {
+			priority = 3
+		}
+		if priority > 5 {
+			priority = 5
+		}
+
+		err := ms.AddMemory(em.Content, cat, priority, em.Tags)
+		if err != nil {
+			log.Printf("[Memory Extractor] Failed to save memory: %v", err)
+		} else {
+			log.Printf("[Memory Extractor] Successfully saved memory: '%s'", em.Content)
+		}
+	}
 }

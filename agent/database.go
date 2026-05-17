@@ -92,6 +92,15 @@ func createSchema() error {
 		key TEXT PRIMARY KEY,
 		value TEXT NOT NULL
 	);
+
+	CREATE TABLE IF NOT EXISTS souls (
+		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
+		description TEXT,
+		system_prompt TEXT NOT NULL,
+		emoji TEXT NOT NULL,
+		color TEXT NOT NULL
+	);
 	`
 
 	_, err := db.Exec(schema)

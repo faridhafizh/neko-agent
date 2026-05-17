@@ -1,5 +1,9 @@
 package main
 
+import (
+	"fmt"
+)
+
 type SoulProfile struct {
 	Name         string `json:"name"`
 	Description  string `json:"description"`
@@ -104,6 +108,14 @@ func (ss *SoulStore) GetActiveSoul() SoulProfile {
 		return soul
 	}
 
+	// Check custom souls from database
+	var soul SoulProfile
+	err := db.QueryRow("SELECT name, description, system_prompt, emoji, color FROM souls WHERE id = ?", activeID).
+		Scan(&soul.Name, &soul.Description, &soul.SystemPrompt, &soul.Emoji, &soul.Color)
+	if err == nil {
+		return soul
+	}
+
 	// Fallback to default
 	return defaultSouls["default"]
 }
@@ -117,10 +129,18 @@ func (ss *SoulStore) GetActiveSoulID() string {
 }
 
 func (ss *SoulStore) SetActiveSoul(soulID string) error {
-	if _, exists := defaultSouls[soulID]; !exists {
-		return nil
+	if _, exists := defaultSouls[soulID]; exists {
+		return dbSetConfig("active_soul", soulID)
 	}
-	return dbSetConfig("active_soul", soulID)
+
+	// Check custom souls from database
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM souls WHERE id = ?", soulID).Scan(&count)
+	if err == nil && count > 0 {
+		return dbSetConfig("active_soul", soulID)
+	}
+
+	return fmt.Errorf("soul not found: %s", soulID)
 }
 
 func (ss *SoulStore) GetAllSouls() map[string]SoulProfile {
@@ -128,12 +148,34 @@ func (ss *SoulStore) GetAllSouls() map[string]SoulProfile {
 	for k, v := range defaultSouls {
 		result[k] = v
 	}
+
+	// Load custom souls from database
+	rows, err := db.Query("SELECT id, name, description, system_prompt, emoji, color FROM souls")
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id string
+			var soul SoulProfile
+			if rows.Scan(&id, &soul.Name, &soul.Description, &soul.SystemPrompt, &soul.Emoji, &soul.Color) == nil {
+				result[id] = soul
+			}
+		}
+	}
+
 	return result
 }
 
 func (ss *SoulStore) AddSoul(id string, profile SoulProfile) error {
-	defaultSouls[id] = profile
-	return nil
+	// Prevent overwriting built-in souls
+	if _, exists := defaultSouls[id]; exists {
+		return fmt.Errorf("cannot overwrite built-in soul: %s", id)
+	}
+
+	_, err := db.Exec(
+		"INSERT OR REPLACE INTO souls (id, name, description, system_prompt, emoji, color) VALUES (?, ?, ?, ?, ?, ?)",
+		id, profile.Name, profile.Description, profile.SystemPrompt, profile.Emoji, profile.Color,
+	)
+	return err
 }
 
 func (ss *SoulStore) DeleteSoul(id string) error {
@@ -143,10 +185,13 @@ func (ss *SoulStore) DeleteSoul(id string) error {
 		"efficient": true, "creative": true,
 	}
 	if builtinSouls[id] {
-		return nil
+		return fmt.Errorf("cannot delete built-in soul: %s", id)
 	}
 
-	delete(defaultSouls, id)
+	_, err := db.Exec("DELETE FROM souls WHERE id = ?", id)
+	if err != nil {
+		return err
+	}
 
 	// If active soul was deleted, switch to default
 	if ss.GetActiveSoulID() == id {

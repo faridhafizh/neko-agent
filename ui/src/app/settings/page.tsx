@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { fetchSettings, saveSettings, Settings, ProviderConfig, fetchSouls, setActiveSoul, SoulProfile } from "@/lib/api";
+import { fetchSettings, saveSettings, Settings, ProviderConfig, fetchSouls, setActiveSoul, SoulProfile, addCustomSoul, deleteCustomSoul } from "@/lib/api";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -24,6 +24,47 @@ export default function SettingsPage() {
   // Provider management state
   const [editingProvider, setEditingProvider] = useState<string | null>(null);
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
+
+  // Custom Soul Creator state
+  const [showCreator, setShowCreator] = useState(false);
+  const [creatorForm, setCreatorForm] = useState({
+    id: "",
+    name: "",
+    description: "",
+    systemPrompt: "",
+    emoji: "🐱",
+    color: "amber"
+  });
+
+  const handleCreateSoul = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!creatorForm.id || !creatorForm.name || !creatorForm.systemPrompt) return;
+    try {
+      await addCustomSoul({
+        id: creatorForm.id,
+        name: creatorForm.name,
+        description: creatorForm.description,
+        systemPrompt: creatorForm.systemPrompt,
+        emoji: creatorForm.emoji,
+        color: creatorForm.color
+      });
+      // Refresh souls list
+      const res = await fetchSouls();
+      setSouls(res.souls);
+      setShowCreator(false);
+      // Reset form
+      setCreatorForm({
+        id: "",
+        name: "",
+        description: "",
+        systemPrompt: "",
+        emoji: "🐱",
+        color: "amber"
+      });
+    } catch (e: any) {
+      alert("Failed to create custom soul: " + e.message);
+    }
+  };
 
   useEffect(() => {
     fetchSettings().then(s => {
@@ -134,22 +175,161 @@ export default function SettingsPage() {
         {soulsLoading ? (
           <div className="text-center py-4 text-amber-600 dark:text-amber-500 animate-pulse">Loading souls...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {Object.entries(souls).map(([id, soul]) => (
-              <button
-                key={id}
-                onClick={() => handleSoulChange(id)}
-                className={`p-4 rounded-xl border-2 transition-all text-left ${
-                  activeSoulId === id
-                    ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-md"
-                    : "border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 hover:border-amber-300 dark:hover:border-amber-700"
-                }`}
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Object.entries(souls).map(([id, soul]) => (
+                <div
+                  key={id}
+                  onClick={() => handleSoulChange(id)}
+                  className={`group relative p-4 rounded-xl border-2 transition-all text-left cursor-pointer ${
+                    activeSoulId === id
+                      ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-md"
+                      : "border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 hover:border-amber-300 dark:hover:border-amber-700"
+                  }`}
+                >
+                  <div className="text-3xl mb-2">{soul.emoji}</div>
+                  <div className="font-semibold text-stone-800 dark:text-stone-100">{soul.name}</div>
+                  <div className="text-sm text-stone-600 dark:text-stone-400 mt-1">{soul.description}</div>
+
+                  {/* Delete button for custom souls */}
+                  {!["default", "playful", "scholarly", "efficient", "creative"].includes(id) && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (confirm(`Are you sure you want to delete the "${soul.name}" persona?`)) {
+                          try {
+                            await deleteCustomSoul(id);
+                            const res = await fetchSouls();
+                            setSouls(res.souls);
+                            setActiveSoulId(res.activeSoul);
+                          } catch (e: any) {
+                            alert("Failed to delete custom soul: " + e.message);
+                          }
+                        }
+                      }}
+                      className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-red-500/10 text-red-500 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-white transition-all text-xs font-bold"
+                      title="Delete Custom Persona"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {/* Create Custom Soul Action Card */}
+              <div
+                onClick={() => setShowCreator(!showCreator)}
+                className="p-4 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-800/80 bg-amber-50/5 dark:bg-amber-900/5 hover:bg-amber-50/10 hover:border-amber-400 cursor-pointer flex flex-col items-center justify-center text-center group transition-all"
               >
-                <div className="text-3xl mb-2">{soul.emoji}</div>
-                <div className="font-semibold text-stone-800 dark:text-stone-100">{soul.name}</div>
-                <div className="text-sm text-stone-600 dark:text-stone-400 mt-1">{soul.description}</div>
-              </button>
-            ))}
+                <span className="text-3xl mb-2 text-amber-500 group-hover:scale-110 transition-transform">➕</span>
+                <span className="font-semibold text-amber-600 dark:text-amber-500">Create Persona</span>
+                <span className="text-xs text-stone-500 mt-1">Design Neko's personality</span>
+              </div>
+            </div>
+
+            {/* Custom Soul Creator Form Panel */}
+            {showCreator && (
+              <form onSubmit={handleCreateSoul} className="mt-6 p-6 border border-amber-200 dark:border-amber-900/50 rounded-xl bg-amber-50/5 dark:bg-stone-900/20 space-y-4">
+                <h3 className="text-lg font-bold text-amber-600 dark:text-amber-500 flex items-center gap-2">
+                  🎨 Create Custom Soul Profile
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-stone-600 dark:text-stone-400">Unique ID (lowercase, no spaces)</label>
+                    <input
+                      type="text"
+                      value={creatorForm.id}
+                      onChange={e => setCreatorForm(prev => ({ ...prev, id: e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, "") }))}
+                      className="w-full bg-stone-50 dark:bg-stone-700 border border-stone-300 dark:border-stone-600 rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 text-stone-800 dark:text-stone-100"
+                      placeholder="e.g. devops-neko"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-stone-600 dark:text-stone-400">Soul Name</label>
+                    <input
+                      type="text"
+                      value={creatorForm.name}
+                      onChange={e => setCreatorForm(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full bg-stone-50 dark:bg-stone-700 border border-stone-300 dark:border-stone-600 rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 text-stone-800 dark:text-stone-100"
+                      placeholder="e.g. DevOps Neko"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-stone-600 dark:text-stone-400">Description</label>
+                    <input
+                      type="text"
+                      value={creatorForm.description}
+                      onChange={e => setCreatorForm(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full bg-stone-50 dark:bg-stone-700 border border-stone-300 dark:border-stone-600 rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 text-stone-800 dark:text-stone-100"
+                      placeholder="e.g. Wise cloud system administrator cat"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-sm font-medium mb-1 text-stone-600 dark:text-stone-400">Emoji Icon</label>
+                      <input
+                        type="text"
+                        value={creatorForm.emoji}
+                        onChange={e => setCreatorForm(prev => ({ ...prev, emoji: e.target.value }))}
+                        className="w-full text-center bg-stone-50 dark:bg-stone-700 border border-stone-300 dark:border-stone-600 rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 text-stone-800 dark:text-stone-100 text-xl"
+                        placeholder="🐱"
+                        required
+                    />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1 text-stone-600 dark:text-stone-400">Theme Color</label>
+                      <select
+                        value={creatorForm.color}
+                        onChange={e => setCreatorForm(prev => ({ ...prev, color: e.target.value }))}
+                        className="w-full bg-stone-50 dark:bg-stone-700 border border-stone-300 dark:border-stone-600 rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 text-stone-800 dark:text-stone-100"
+                      >
+                        <option value="amber">Amber (Gold)</option>
+                        <option value="orange">Orange</option>
+                        <option value="blue">Blue (Sapphire)</option>
+                        <option value="green">Green (Emerald)</option>
+                        <option value="purple">Purple (Amethyst)</option>
+                        <option value="red">Red (Ruby)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-stone-600 dark:text-stone-400">System Instruction Prompt (System Role)</label>
+                  <textarea
+                    value={creatorForm.systemPrompt}
+                    onChange={e => setCreatorForm(prev => ({ ...prev, systemPrompt: e.target.value }))}
+                    rows={6}
+                    className="w-full bg-stone-50 dark:bg-stone-700 border border-stone-300 dark:border-stone-600 rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 text-stone-800 dark:text-stone-100 font-mono text-sm"
+                    placeholder="e.g. You are DevOps Neko-Claw... Always double check security guidelines..."
+                    required
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2 border-t border-stone-200 dark:border-stone-700">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreator(false)}
+                    className="px-4 py-2 bg-stone-500 hover:bg-stone-400 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white rounded-lg text-sm font-medium transition-colors shadow-md"
+                  >
+                    Create Persona 🐾
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
       </div>

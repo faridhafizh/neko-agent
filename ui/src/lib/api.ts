@@ -274,6 +274,28 @@ export async function setActiveSoul(soulId: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to set active soul");
 }
 
+export async function addCustomSoul(soul: SoulProfile & { id: string }): Promise<void> {
+  const res = await fetch(`${API_BASE}/souls`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(soul)
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(errText || "Failed to add custom soul");
+  }
+}
+
+export async function deleteCustomSoul(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/souls?id=${encodeURIComponent(id)}`, {
+    method: "DELETE"
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(errText || "Failed to delete custom soul");
+  }
+}
+
 // Chat Session API functions
 export async function fetchChatSessions(includeArchived = false): Promise<{ sessions: ChatSession[] }> {
   const res = await fetch(`${API_BASE}/chats${includeArchived ? '?archived=true' : ''}`);

@@ -387,19 +387,68 @@ func handleMemoryStats(w http.ResponseWriter, r *http.Request) {
 
 // Soul API Handlers
 func handleSouls(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
+	switch r.Method {
+	case "GET":
+		souls := soulStore.GetAllSouls()
+		activeSoul := soulStore.GetActiveSoul()
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"souls":         souls,
+			"activeSoul":    soulStore.GetActiveSoulID(),
+			"activeProfile": activeSoul,
+		})
+
+	case "POST":
+		var req struct {
+			ID           string `json:"id"`
+			Name         string `json:"name"`
+			Description  string `json:"description"`
+			SystemPrompt string `json:"systemPrompt"`
+			Emoji        string `json:"emoji"`
+			Color        string `json:"color"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if req.ID == "" || req.Name == "" || req.SystemPrompt == "" {
+			http.Error(w, "ID, Name, and System Prompt are required", http.StatusBadRequest)
+			return
+		}
+
+		profile := SoulProfile{
+			Name:         req.Name,
+			Description:  req.Description,
+			SystemPrompt: req.SystemPrompt,
+			Emoji:        req.Emoji,
+			Color:        req.Color,
+		}
+
+		if err := soulStore.AddSoul(req.ID, profile); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+
+	case "DELETE":
+		soulID := r.URL.Query().Get("id")
+		if soulID == "" {
+			http.Error(w, "id parameter is required", http.StatusBadRequest)
+			return
+		}
+
+		if err := soulStore.DeleteSoul(soulID); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+
+	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
 	}
-
-	souls := soulStore.GetAllSouls()
-	activeSoul := soulStore.GetActiveSoul()
-
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"souls":         souls,
-		"activeSoul":    soulStore.GetActiveSoulID(),
-		"activeProfile": activeSoul,
-	})
 }
 
 func handleActiveSoul(w http.ResponseWriter, r *http.Request) {

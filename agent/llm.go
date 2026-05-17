@@ -168,6 +168,9 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 	chatHistoryStore.AddMessage(session.ID, ChatMessage{Role: "user", Content: req.Message})
 	chatHistoryStore.AddMessage(session.ID, ChatMessage{Role: "assistant", Content: choice.Message.Content})
 
+	// Trigger memory extraction in background
+	go memoryStore.ExtractMemoriesFromTurn(req.Message, choice.Message.Content)
+
 	// Get memory stats
 	memStats := memoryStore.GetMemoryStats()
 	memoryCount := memStats["total"].(int)
@@ -546,6 +549,9 @@ func handleChatStream(w http.ResponseWriter, r *http.Request) {
 
 	// Save assistant message
 	chatHistoryStore.AddMessage(session.ID, ChatMessage{Role: "assistant", Content: fullContent.String()})
+
+	// Trigger memory extraction in background
+	go memoryStore.ExtractMemoriesFromTurn(req.Message, fullContent.String())
 
 	// Handle tool call if present
 	if hasToolCall {
