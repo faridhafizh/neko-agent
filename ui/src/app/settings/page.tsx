@@ -308,7 +308,7 @@ export default function SettingsPage() {
                     onChange={e => setCreatorForm(prev => ({ ...prev, systemPrompt: e.target.value }))}
                     rows={6}
                     className="w-full bg-stone-50 dark:bg-stone-700 border border-stone-300 dark:border-stone-600 rounded-lg px-3 py-2 focus:outline-none focus:border-amber-500 text-stone-800 dark:text-stone-100 font-mono text-sm"
-                    placeholder="e.g. You are DevOps Neko-Claw... Always double check security guidelines..."
+                    placeholder="e.g. You are DevOps Neko-Agent... Always double check security guidelines..."
                     required
                   />
                 </div>

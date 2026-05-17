@@ -57,7 +57,7 @@ function formatMsgTime(d: Date): string {
 function makeWelcomeMsg(): Message {
   return {
     role: "system",
-    text: "Welcome to Neko AI Controller 🐾. Meow can I help you today?",
+    text: "Welcome to Neko-Agent 🐾. Meow can I help you today?",
     timestamp: new Date(),
   };
 }

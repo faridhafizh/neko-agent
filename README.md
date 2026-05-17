@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Neko-Claw Logo" width="200" height="200" style="border-radius: 24px;" />
+  <img src="assets/logo.png" alt="Neko-Agent Logo" width="200" height="200" style="border-radius: 24px;" />
 </p>
 
-<h1 align="center">🐱 Neko-Claw AI Controller</h1>
+<h1 align="center">🐱 Neko-Agent AI Controller</h1>
 
 <p align="center">
   <strong>A "pawsome" computer control superapp that allows you to interact with your Windows machine using AI.</strong>
 </p>
 
 <p align="center">
-  Featuring a sleek cat-themed UI and powered by Zhipu AI (GLM-4.7-flash), Neko-Claw provides a safe yet efficient way to automate tasks through PowerShell commands.
+  Featuring a sleek cat-themed UI and powered by Zhipu AI (GLM-4.7-flash), Neko-Agent provides a safe yet efficient way to automate tasks through PowerShell commands.
 </p>
 
 ## 🐾 Features
@@ -39,8 +39,8 @@
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/yourusername/neko-claw.git
-   cd neko-claw
+    git clone https://github.com/yourusername/neko-agent.git
+    cd neko-agent
    ```
 
 2. **Run the application**:

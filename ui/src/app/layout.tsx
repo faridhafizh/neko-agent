@@ -6,7 +6,7 @@ import Link from "next/link";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Neko AI Controller 🐾",
+  title: "Neko-Agent AI Controller 🐾",
   description: "Control your computer with a pawsome AI agent",
 };
 
@@ -23,7 +23,7 @@ export default function RootLayout({
             <Link href="/" className="flex items-center gap-2 group">
               <span className="text-2xl group-hover:animate-bounce transition-all">🐱</span>
               <h1 className="text-xl font-black bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent">
-                Neko AI Controller
+                Neko-Agent
               </h1>
             </Link>
             <nav className="flex gap-1">
